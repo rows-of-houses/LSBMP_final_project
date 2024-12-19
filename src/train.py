@@ -16,7 +16,7 @@ x_dim = 32*32
 u_dim = 2
 img_res = 32
 
-batch_size = 1024
+batch_size = 2048
 lr = 1e-4
 epochs = 100
 data_train_path = 'data/train'
@@ -61,27 +61,27 @@ def train_one_epoch(model, epoch):
             
             
 def test_one_epoch(model, epoch):
-    with torch.no_grad():
-        model.eval()
-        running_loss = np.array([0.0, 0.0, 0.0, 0.0])
-        
-        for i, (x_t, x_tplus, x_empty, u_t) in enumerate(dyn_test_loader, 0):
-            x_t = x_t.to(device)
-            x_tplus = x_tplus.to(device)
-            x_empty = x_empty.to(device)
-            u_t = u_t.to(device)
-                
-            x_full, z_t, z_tplus, x_hat_full, z_hat_tplus = enc_dyn_net(x_t, x_tplus, x_empty, u_t)
-            l2_weight = 1.0 if epoch < 10 else 0.0 # Can use a more sophisticated L2_weight formulation
-            total_loss, predict_loss_G, predict_loss_L2, recon_loss = enc_dyn_net.compute_loss(u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, l2_weight)
+    model.eval()
+    running_loss = np.array([0.0, 0.0, 0.0, 0.0])
+    
+    for i, (x_t, x_tplus, x_empty, u_t) in enumerate(dyn_test_loader, 0):
+        x_t = x_t.to(device)
+        x_tplus = x_tplus.to(device)
+        x_empty = x_empty.to(device)
+        u_t = u_t.to(device)
+        u_t.requires_grad_()     
                     
-            running_loss += np.array([total_loss.item(), predict_loss_G.item(), predict_loss_L2.item(), recon_loss.item()])
-            
-        avg_loss = running_loss / (i + 1)
-        writer.add_scalar('test_loss', avg_loss[0])
-        writer.add_scalar('test_loss_G', avg_loss[1])
-        writer.add_scalar('test_loss_L2', avg_loss[2])
-        writer.add_scalar('test_recon_loss', avg_loss[3])
+        x_full, z_t, z_tplus, x_hat_full, z_hat_tplus = enc_dyn_net(x_t, x_tplus, x_empty, u_t)
+        l2_weight = 1.0 if epoch < 10 else 0.0 # Can use a more sophisticated L2_weight formulation
+        total_loss, predict_loss_G, predict_loss_L2, recon_loss = enc_dyn_net.compute_loss(u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, l2_weight)
+                
+        running_loss += np.array([total_loss.item(), predict_loss_G.item(), predict_loss_L2.item(), recon_loss.item()])
+        
+    avg_loss = running_loss / (i + 1)
+    writer.add_scalar('test_loss', avg_loss[0])
+    writer.add_scalar('test_loss_G', avg_loss[1])
+    writer.add_scalar('test_loss_L2', avg_loss[2])
+    writer.add_scalar('test_recon_loss', avg_loss[3])
             
 for epoch in tqdm(range(epochs)):
     train_one_epoch(enc_dyn_net, epoch)
