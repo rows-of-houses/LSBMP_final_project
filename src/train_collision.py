@@ -7,8 +7,11 @@ import time
 import os
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from utils import set_random_seed
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+set_random_seed(42)
 
 model = CollisionChecker()
 model.train()

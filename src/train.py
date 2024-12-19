@@ -7,8 +7,11 @@ import time
 import os
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from utils import set_random_seed
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+set_random_seed(42)
 
 enc_dyn_net = AutoEncoder_Dynamics()
 enc_dyn_net.to(device)
@@ -20,8 +23,8 @@ img_res = 32
 batch_size = 2048
 lr = 1e-4
 epochs = 100
-data_train_path = 'data/train'
-data_test_path = 'data/test'
+data_train_path = '../data/train'
+data_test_path = '../data/test'
 save_every = 5
 
 dynamics_train = LSBMPDataset(data_train_path)
