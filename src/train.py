@@ -90,7 +90,7 @@ def test_one_epoch(model, epoch):
 for epoch in tqdm(range(epochs)):
     train_one_epoch(enc_dyn_net, epoch)
     test_one_epoch(enc_dyn_net, epoch)
-    # torch.save(enc_dyn_net.state_dict(), "latest.ckpt")
+    torch.save(enc_dyn_net.state_dict(), "latest.ckpt")
     if epoch % save_every == 0:
         torch.save(enc_dyn_net.state_dict(), f"epoch_{epoch}.ckpt")
 os.makedirs("../checkpoints", exist_ok=True)

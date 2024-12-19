@@ -46,6 +46,7 @@ def train_one_epoch(model, epoch):
         z1 = z1.to(device)
         z2 = z2.to(device)
         x_empty = x_empty.to(device)
+        labels = labels.to(device)
             
         img_dense_out = model.image_representation(x_empty)
         logits = model(z1, z2, img_dense_out)
@@ -58,8 +59,8 @@ def train_one_epoch(model, epoch):
         running_loss += total_loss.item()
         if i % 100 == 0:
             avg_loss = running_loss / 100
-            print ('[%d, %5d] loss: %.3f' % (epoch+1, i+1, avg_loss))
-            index = epoch * len(dyn_train_loader) + i
+            # print ('[%d, %5d] loss: %.3f' % (epoch+1, i+1, avg_loss))
+            index = epoch * len(train_loader) + i
             writer.add_scalar('train_loss', avg_loss, index)
             running_loss = 0.0
             
@@ -73,6 +74,7 @@ def test_one_epoch(model, epoch):
             z1 = z1.to(device)
             z2 = z2.to(device)
             x_empty = x_empty.to(device)
+            labels = labels.to(device)
                 
             img_dense_out = model.image_representation(x_empty)
             logits = model(z1, z2, img_dense_out)
@@ -82,8 +84,8 @@ def test_one_epoch(model, epoch):
             accuracy += ((logits > 0) == labels).sum()
     avg_loss = running_loss * batch_size / len(testset)
     avg_accuracy = accuracy / len(testset)
-    print ('[%d, %5d] loss: %.3f accuracy: %.3f' % (epoch+1, i+1, avg_loss, avg_accuracy))
-    index = epoch * len(dyn_train_loader)
+    # print ('[%d, %5d] loss: %.3f accuracy: %.3f' % (epoch+1, i+1, avg_loss, avg_accuracy))
+    index = epoch * len(train_loader)
     writer.add_scalar('test_loss', avg_loss, index)
     writer.add_scalar('test_accuracy', avg_accuracy, index)
             
@@ -92,4 +94,4 @@ for epoch in tqdm(range(epochs)):
     train_one_epoch(model, epoch)
     test_one_epoch(model, epoch)
 os.makedirs("../checkpoints", exist_ok=True)
-torch.save(enc_dyn_net.state_dict(), "../checkpoints/collision_model.pth")
+torch.save(model.state_dict(), "../checkpoints/collision_model.pth")

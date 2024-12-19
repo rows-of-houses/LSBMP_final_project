@@ -48,9 +48,10 @@ for i in tqdm(range(args.num_envs)):
         states1.append(resize(env.plot_enviroment(state1), args.scale))
         states2.append(resize(env.plot_enviroment(state2), args.scale))
         labels_inner.append(label)
-    states1 = torch.tensor(np.stack(states1), dtype=torch.float32)
-    states2 = torch.tensor(np.stack(states2), dtype=torch.float32)
-    z_full = enc_dyn_net.encode(states1, states2)[1].cpu().numpy()
+    states1 = torch.tensor(np.stack(states1), dtype=torch.float32).to(device)
+    states2 = torch.tensor(np.stack(states2), dtype=torch.float32).to(device)
+    with torch.no_grad():
+        z_full = enc_dyn_net.encode(states1, states2)[1].cpu().numpy()
     z1, z2 = z_full[:states1.shape[0]], z_full[states1.shape[0]:]
     latents1.append(z1)
     latents2.append(z2)

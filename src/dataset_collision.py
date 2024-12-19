@@ -52,7 +52,7 @@ class CollisionDataset(Dataset):
         return torch.tensor(z1, dtype=torch.float32), \
                 torch.tensor(z2, dtype=torch.float32), \
                 torch.tensor(x_empty, dtype=torch.float32), \
-                label
+                float(label)
 
     def __len__(self):
         return self.num_envs * self.num_pairs * 2

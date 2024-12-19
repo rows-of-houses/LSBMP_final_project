@@ -192,9 +192,9 @@ class CollisionChecker(nn.Module):
         self.imageConvLayer = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=conv_filters, kernel_size=kernel_size, padding=padding), # kernel_size different than original
             nn.ReLU(),
-            nn.Conv2d(conv_filters, conv_filters, kernel_size, padding),
+            nn.Conv2d(conv_filters, conv_filters, kernel_size, padding=padding),
             nn.ReLU(),
-            nn.Conv2d(conv_filters, conv_filters, kernel_size, padding),
+            nn.Conv2d(conv_filters, conv_filters, kernel_size, padding=padding),
             nn.ReLU(),
             nn.Flatten(),
             nn.Linear(conv_filters*self.x_dim, 4*fc_dim),
@@ -227,13 +227,14 @@ class CollisionChecker(nn.Module):
     def image_representation(self, x):
         inputs_img = torch.reshape(x, [-1, 1, self.img_res, self.img_res])
         img_dense_out = self.imageConvLayer(inputs_img)
+        return img_dense_out
         
     def forward(self, z1, z2, img_dense_out):        
         inputs_lat = torch.cat((z1, z2), dim=1)
         lat_dense_out = self.latentDenseLayer(inputs_lat)
         
         inputs_final = torch.cat((lat_dense_out, img_dense_out), dim=1)
-        collision_prediction = self.finalDenseLayer(inputs_final)
+        collision_prediction = self.finalDenseLayer(inputs_final).squeeze()
         
         return collision_prediction
     
