@@ -150,6 +150,10 @@ class AutoEncoder_Dynamics(nn.Module):
         input_last = torch.cat((output_dec, output_env), dim=1)
         x_hat_full = self.last_layer(input_last)
         
+        x_hat_full = torch.reshape(x_hat_full, [-1, self.img_res, self.img_res])
+        
+        
+        
         return x_full, z_t, z_tplus, x_hat_full, z_hat_tplus
         
     def compute_loss(self, u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, L2_weight):
