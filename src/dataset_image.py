@@ -21,7 +21,7 @@ class LSBMPDataset(Dataset):
         self.data_dir = data_dir
         self.ids = os.listdir(data_dir)
         self.ids.sort()
-        self.traj_length = len(os.listdir(os.path.join(self.data_dir, self.ids[0]))) - 2
+        self.traj_length = len(os.listdir(os.path.join(self.data_dir, self.ids[0]))) - 3
         self.empties = []
         self.actions = []
         self.states = []
@@ -32,7 +32,7 @@ class LSBMPDataset(Dataset):
             with open(os.path.join(self.data_dir, id, "actions.bin"), 'rb') as fp:
                 self.actions.append(pickle.load(fp))
             states = []
-            for i in range(self.traj_length):
+            for i in range(self.traj_length + 1):
                 with open(os.path.join(self.data_dir, id, f"state_{i}.bin"), 'rb') as fp:
                     states.append(pickle.load(fp))
             self.states.append(states)

@@ -147,10 +147,9 @@ class Environment:
                     #     print("not_accepted")
                     break
             else:
-                return states, actions
+                return states, actions[1:]
             state = new_state
             angles.append(polar_action[1])
             states.append(state)
             actions.append(action)
-                
         return states, actions[1:]
