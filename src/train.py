@@ -90,7 +90,7 @@ for epoch in tqdm(range(epochs)):
     # torch.save(enc_dyn_net.state_dict(), "latest.ckpt")
     if epoch % save_every == 0:
         torch.save(enc_dyn_net.state_dict(), f"epoch_{epoch}.ckpt")
-os.makedirs("../checkpoints", exists_ok=True)
+os.makedirs("../checkpoints", exist_ok=True)
 torch.save(enc_dyn_net.state_dict(), "../checkpoints/dyn_model.pth")
 
 writer.close()

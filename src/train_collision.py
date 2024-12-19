@@ -88,5 +88,5 @@ def test_one_epoch(model, epoch):
 for epoch in tqdm(range(epochs)):
     train_one_epoch(model, epoch)
     test_one_epoch(model, epoch)
-os.makedirs("../checkpoints", exists_ok=True)
+os.makedirs("../checkpoints", exist_ok=True)
 torch.save(enc_dyn_net.state_dict(), "../checkpoints/collision_model.pth")
