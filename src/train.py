@@ -55,10 +55,10 @@ def train_one_epoch(model, epoch):
         running_loss += np.array([total_loss.item(), predict_loss_G.item(), predict_loss_L2.item(), recon_loss.item()])
         
     avg_loss = running_loss / (i + 1)
-    writer.add_scalar('train_loss', avg_loss[0])
-    writer.add_scalar('train_loss_G', avg_loss[1])
-    writer.add_scalar('train_loss_L2', avg_loss[2])
-    writer.add_scalar('train_recon_loss', avg_loss[3])
+    writer.add_scalar('train_loss', avg_loss[0], epoch)
+    writer.add_scalar('train_loss_G', avg_loss[1], epoch)
+    writer.add_scalar('train_loss_L2', avg_loss[2], epoch)
+    writer.add_scalar('train_recon_loss', avg_loss[3], epoch)
             
             
 def test_one_epoch(model, epoch):
@@ -79,10 +79,10 @@ def test_one_epoch(model, epoch):
         running_loss += np.array([total_loss.item(), predict_loss_G.item(), predict_loss_L2.item(), recon_loss.item()])
         
     avg_loss = running_loss / (i + 1)
-    writer.add_scalar('test_loss', avg_loss[0])
-    writer.add_scalar('test_loss_G', avg_loss[1])
-    writer.add_scalar('test_loss_L2', avg_loss[2])
-    writer.add_scalar('test_recon_loss', avg_loss[3])
+    writer.add_scalar('test_loss', avg_loss[0], epoch)
+    writer.add_scalar('test_loss_G', avg_loss[1], epoch)
+    writer.add_scalar('test_loss_L2', avg_loss[2], epoch)
+    writer.add_scalar('test_recon_loss', avg_loss[3], epoch)
             
 for epoch in tqdm(range(epochs)):
     train_one_epoch(enc_dyn_net, epoch)
