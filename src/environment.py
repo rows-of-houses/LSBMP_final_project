@@ -43,7 +43,7 @@ class Environment:
         current_env = np.copy(self._env)
         # plot agent
         current_env[s[0] + self._robot_start:s[0] + self._robot_end,
-                    s[1] + self._robot_start:s[1] + self._robot_end] = 0.7 #red?
+                    s[1] + self._robot_start:s[1] + self._robot_end] = 0.5 #red?
         # plot goal
         # current_env[goal] = 0.3
         return current_env

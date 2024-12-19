@@ -1,2 +1,5 @@
 *.pyc
 runs
+.ipynb_checkpoints
+*.csv
+/data
