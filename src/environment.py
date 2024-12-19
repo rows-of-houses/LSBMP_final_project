@@ -40,10 +40,10 @@ class Environment:
         s is the state 
         """
         dims = self._env.shape    
-        current_env = np.copy(self._env)
+        current_env = np.copy(self._env) / 2 + 0.5
         # plot agent
         current_env[s[0] + self._robot_start:s[0] + self._robot_end,
-                    s[1] + self._robot_start:s[1] + self._robot_end] = 0.5 #red?
+                    s[1] + self._robot_start:s[1] + self._robot_end] = 0 #purple
         # plot goal
         # current_env[goal] = 0.3
         return current_env
@@ -99,10 +99,20 @@ class Environment:
             return tuple(np.random.randint(-self._robot_start,
                                      [self._env.shape[0] + self._robot_start,
                                       self._env.shape[1] + self._robot_start]))
-        def get_random_action():
-            return tuple(np.random.randint(-max_step, max_step + 1, size=2))
+        def get_random_action(angle = None, angle_delta = np.pi / 6):
+            r = np.random.uniform() * (max_step - 1) + 1
+            if angle is None:
+                angle = np.random.uniform() * np.pi * 2
+            else:
+                angle = np.random.uniform() * angle_delta * 2 - angle_delta + angle
+            return r, angle
 
-        max_iters = 10
+        def action_to_euclidean(r, angle):
+            sin = np.sin(angle)
+            cos = np.cos(angle)
+            return int(r * sin + 0.5 * np.sign(sin)), int(r * cos + 0.5 * np.sign(cos))
+
+        max_iters = 20
         for _ in range(max_iters):
             state = get_random_state()
             if self.state_consistency_check(state):
@@ -110,47 +120,37 @@ class Environment:
         else:
             return [], []
         action = (self._env.shape[0] // 2 - state[0], self._env.shape[0] // 2 - state[1])
-        action = tuple((np.array(action) * max_step / np.linalg.norm(action) + 0.5).astype(int))
+        if action[0] == 0 and action[1] == 0:
+            action = action_to_euclidean(*get_random_action())
+        action = np.array(action) / np.linalg.norm(action)
+        angle = np.arccos(action[1])
+        if np.arcsin(action[0]) < 0:
+            angle *= -1
+        angles = [angle]
+        action = tuple((action * max_step + 0.5 * np.sign(action)).astype(int))
         actions = [action]
         states = [state]
         for i in range(length):
             for j in range(max_iters):
                 if j == 0:
-                    action = actions[-1]
+                    polar_action = get_random_action(angles[-1])
                 else:
-                    action = get_random_action()
-                if action[0] == 0 and action[1] == 0:
-                    continue
-                # if np.abs(angle_between(actions[-1], action)) > np.pi / 2:
-                #     continue
+                    polar_action = get_random_action()
+                action = action_to_euclidean(*polar_action)
                 new_state, safe = self.transition_function(state, action)
                 if safe:
+                    # r, angle = polar_action
+                    # print(r * np.sin(angle), r * np.cos(angle))
+                    # if j == 0:
+                    #     print("accepted first action")
+                    # else:
+                    #     print("not_accepted")
                     break
             else:
                 return states, actions
             state = new_state
+            angles.append(polar_action[1])
             states.append(state)
             actions.append(action)
                 
         return states, actions[1:]
-
-
-def unit_vector(vector):
-    """ Returns the unit vector of the vector.  """
-    return vector / np.linalg.norm(vector)
-
-def angle_between(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'::
-
-            >>> angle_between((1, 0, 0), (0, 1, 0))
-            1.5707963267948966
-            >>> angle_between((1, 0, 0), (1, 0, 0))
-            0.0
-            >>> angle_between((1, 0, 0), (-1, 0, 0))
-            3.141592653589793
-    """
-    if np.abs(v1).sum() == 0 or np.abs(v2).sum() == 0:
-        return 0
-    v1_u = unit_vector(np.array(v1))
-    v2_u = unit_vector(np.array(v2))
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))

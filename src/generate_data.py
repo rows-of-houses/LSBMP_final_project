@@ -25,8 +25,15 @@ args = parser.parse_args()
 np.random.seed(args.random_seed)
 
 for i in range(args.num_envs):
-    env, _, _ = get_random_env(args.scale)
-    states, actions = env.generate_trajectory(args.trajectory_length, max_step=args.scale * args.step)
+    while True:  # Guarantee that we have the correct length
+        env, _, _ = get_random_env(args.scale)
+        states, actions = env.generate_trajectory(args.trajectory_length, max_step=args.scale * args.step)
+        if len(actions) == args.trajectory_length:
+            break
+        print(f"Failed to build trajectory for index {i}, retrying")
+    scaled_actions = []
+    for action in actions:
+        scaled_actions.append((action[0] / args.scale, action[1] / args.scale))
     os.makedirs(os.path.join(args.dirname, str(i)))
     with open(os.path.join(args.dirname, str(i), "empty.bin"), 'wb') as fp:
         pickle.dump(resize(env._env, args.scale), fp)
