@@ -4,6 +4,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torch
 import numpy as np
 import time
+import os
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -86,8 +87,10 @@ def test_one_epoch(model, epoch):
 for epoch in tqdm(range(epochs)):
     train_one_epoch(enc_dyn_net, epoch)
     test_one_epoch(enc_dyn_net, epoch)
-    torch.save(enc_dyn_net.state_dict(), "latest.ckpt")
+    # torch.save(enc_dyn_net.state_dict(), "latest.ckpt")
     if epoch % save_every == 0:
         torch.save(enc_dyn_net.state_dict(), f"epoch_{epoch}.ckpt")
-        
+os.makedirs("../checkpoints", exists_ok=True)
+torch.save(enc_dyn_net.state_dict(), "../checkpoints/dyn_model.pth")
+
 writer.close()

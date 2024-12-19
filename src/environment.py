@@ -39,7 +39,7 @@ class Environment:
         env is the grid enviroment
         s is the state 
         """
-        dims = self._env.shape    
+        dims = self._env.shape
         current_env = np.copy(self._env) / 2 + 0.5
         # plot agent
         current_env[s[0] + self._robot_start:s[0] + self._robot_end,
@@ -47,7 +47,6 @@ class Environment:
         # plot goal
         # current_env[goal] = 0.3
         return current_env
-
 
     def state_consistency_check(self, s):
         """Checks wether or not the proposed state is a valid state, i.e. is in colision or our of bounds"""
@@ -61,7 +60,6 @@ class Environment:
             #print('Obstacle')
             return False
         return True
-
 
     def transition_function(self,s,a):
         """Transition function for states in this problem
@@ -94,34 +92,37 @@ class Environment:
         self._state = state
         return state, safe_propagation, success
 
+    def get_random_state(self):
+        return tuple(np.random.randint(-self._robot_start,
+                                 [self._env.shape[0] - self._robot_end + 1,
+                                  self._env.shape[1] - self._robot_end + 1]))
+    
+    def generate_collision(self, max_dist):
+        state = self.get_random_state()
+        action = action_to_euclidean(*get_random_action(max_dist))
+        next_state = np.array(state) + np.array(action)
+        next_state = tuple(np.clip(next_state, -self._robot_start, [self._env.shape[0] + self._robot_start, self._env.shape[1] + self._robot_start]))
+        vector = np.array(next_state) - np.array(state)
+        norm = np.linalg.norm(vector)
+        safe = True
+        for i in range(int(norm + 0.5)):
+            inter_state = tuple((np.array(state) + vector * i / norm + 0.5).astype(int))
+            if not self.state_consistency_check(inter_state):
+                safe = False
+                break
+        return state, next_state, safe
+
     def generate_trajectory(self, length, max_step):
-        def get_random_state():
-            return tuple(np.random.randint(-self._robot_start,
-                                     [self._env.shape[0] + self._robot_start,
-                                      self._env.shape[1] + self._robot_start]))
-        def get_random_action(angle = None, angle_delta = np.pi / 6):
-            r = np.random.uniform() * (max_step - 1) + 1
-            if angle is None:
-                angle = np.random.uniform() * np.pi * 2
-            else:
-                angle = np.random.uniform() * angle_delta * 2 - angle_delta + angle
-            return r, angle
-
-        def action_to_euclidean(r, angle):
-            sin = np.sin(angle)
-            cos = np.cos(angle)
-            return int(r * sin + 0.5 * np.sign(sin)), int(r * cos + 0.5 * np.sign(cos))
-
         max_iters = 20
         for _ in range(max_iters):
-            state = get_random_state()
+            state = self.get_random_state()
             if self.state_consistency_check(state):
                 break
         else:
             return [], []
         action = (self._env.shape[0] // 2 - state[0], self._env.shape[0] // 2 - state[1])
         if action[0] == 0 and action[1] == 0:
-            action = action_to_euclidean(*get_random_action())
+            action = action_to_euclidean(*get_random_action(max_step))
         action = np.array(action) / np.linalg.norm(action)
         angle = np.arccos(action[1])
         if np.arcsin(action[0]) < 0:
@@ -133,9 +134,9 @@ class Environment:
         for i in range(length):
             for j in range(max_iters):
                 if j == 0:
-                    polar_action = get_random_action(angles[-1])
+                    polar_action = get_random_action(max_step, angles[-1])
                 else:
-                    polar_action = get_random_action()
+                    polar_action = get_random_action(max_step)
                 action = action_to_euclidean(*polar_action)
                 new_state, safe = self.transition_function(state, action)
                 if safe:
@@ -153,3 +154,16 @@ class Environment:
             states.append(state)
             actions.append(action)
         return states, actions[1:]
+
+def get_random_action(max_r, angle = None, angle_delta = np.pi / 6):
+    r = np.random.uniform() * (max_r - 1) + 1
+    if angle is None:
+        angle = np.random.uniform() * np.pi * 2
+    else:
+        angle = np.random.uniform() * angle_delta * 2 - angle_delta + angle
+    return r, angle
+
+def action_to_euclidean(r, angle):
+    sin = np.sin(angle)
+    cos = np.cos(angle)
+    return int(r * sin + 0.5 * np.sign(sin)), int(r * cos + 0.5 * np.sign(cos))
