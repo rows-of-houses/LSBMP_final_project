@@ -22,7 +22,7 @@ img_res = 32
 
 batch_size = 256
 lr = 1e-4
-epochs = 24
+epochs = 50
 data_train_path = '../data/train'
 data_test_path = '../data/test'
 save_every = 5
@@ -51,6 +51,7 @@ def train_one_epoch(model, epoch):
             
         x_full, z_t, z_tplus, x_hat_full, z_hat_tplus = enc_dyn_net(x_t, x_tplus, x_empty, u_t)
         l2_weight = 1.0 if epoch < 10 else 0.0 # Can use a more sophisticated L2_weight formulation
+        l2_weight = 0.001
         total_loss, predict_loss_G, predict_loss_L2, recon_loss = enc_dyn_net.compute_loss(u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, l2_weight)
         
         optimizer.zero_grad()
@@ -70,31 +71,40 @@ def test_one_epoch(model, epoch):
     model.eval()
     running_loss = np.array([0.0, 0.0, 0.0, 0.0])
     
-    for i, (x_t, x_tplus, x_empty, u_t) in enumerate(dyn_test_loader, 0):
-        x_t = x_t.to(device)
-        x_tplus = x_tplus.to(device)
-        x_empty = x_empty.to(device)
-        u_t = u_t.to(device)
-        u_t.requires_grad_()     
+    with torch.no_grad():
+        for i, (x_t, x_tplus, x_empty, u_t) in enumerate(dyn_test_loader, 0):
+            x_t = x_t.to(device)
+            x_tplus = x_tplus.to(device)
+            x_empty = x_empty.to(device)
+            u_t = u_t.to(device)
+            u_t.requires_grad_()     
+                        
+            x_full, z_t, z_tplus, x_hat_full, z_hat_tplus = enc_dyn_net(x_t, x_tplus, x_empty, u_t)
+            l2_weight = 1.0 if epoch < 10 else 0.0 # Can use a more sophisticated L2_weight formulation
+            l2_weight = 0.001
+            total_loss, predict_loss_G, predict_loss_L2, recon_loss = enc_dyn_net.compute_loss(u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, l2_weight)
                     
-        x_full, z_t, z_tplus, x_hat_full, z_hat_tplus = enc_dyn_net(x_t, x_tplus, x_empty, u_t)
-        l2_weight = 1.0 if epoch < 10 else 0.0 # Can use a more sophisticated L2_weight formulation
-        total_loss, predict_loss_G, predict_loss_L2, recon_loss = enc_dyn_net.compute_loss(u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, l2_weight)
-                
-        running_loss += np.array([total_loss.item(), predict_loss_G.item(), predict_loss_L2.item(), recon_loss.item()])
+            running_loss += np.array([total_loss.item(), predict_loss_G.item(), predict_loss_L2.item(), recon_loss.item()])
+
+    
         
     avg_loss = running_loss / (i + 1)
     writer.add_scalar('test_loss', avg_loss[0], epoch)
     writer.add_scalar('test_loss_G', avg_loss[1], epoch)
     writer.add_scalar('test_loss_L2', avg_loss[2], epoch)
     writer.add_scalar('test_recon_loss', avg_loss[3], epoch)
+    writer.add_image('test_x_t', x_t[:1], epoch)
+    writer.add_image('test_x_tplus', x_tplus[:1], epoch)
+    writer.add_image('test_x_hat', x_hat_full[:1], epoch)
+    i = x_hat_full.shape[0] // 2
+    writer.add_image('test_x_hat_tplus', x_hat_full[i:i + 1], epoch)
             
 for epoch in tqdm(range(epochs)):
     train_one_epoch(enc_dyn_net, epoch)
     test_one_epoch(enc_dyn_net, epoch)
-    torch.save(enc_dyn_net.state_dict(), "latest.ckpt")
-    if epoch % save_every == 0:
-        torch.save(enc_dyn_net.state_dict(), f"epoch_{epoch}.ckpt")
+    # torch.save(enc_dyn_net.state_dict(), "latest.ckpt")
+    # if epoch % save_every == 0:
+    #     torch.save(enc_dyn_net.state_dict(), f"epoch_{epoch}.ckpt")
 os.makedirs("../checkpoints", exist_ok=True)
 torch.save(enc_dyn_net.state_dict(), "../checkpoints/dyn_model.pth")
 

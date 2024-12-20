@@ -37,15 +37,14 @@ class CollisionDataset(Dataset):
     def __getitem__(self, i):
         env_index = i // self.num_pairs
         pair_index = i % self.num_pairs
+        z1 = self.latents1[i % (self.num_envs * self.num_pairs)]
+        z2 = self.latents2[i % (self.num_envs * self.num_pairs)]
+
         # Simple augmentation, 2x more data
-        reverse = False
         if env_index >= self.num_envs:
             env_index -= self.num_envs
-            reverse = True
-        z1 = self.latents1[env_index][pair_index]
-        z2 = self.latents2[env_index][pair_index]
-        if reverse:
             z1, z2 = z2, z1
+
         x_empty = self.empties[env_index]
         label = self.labels[env_index][pair_index]
 

@@ -22,12 +22,14 @@ class AutoEncoder_Dynamics(nn.Module):
             nn.ReLU(),
             nn.Conv2d(8, 8, 5, padding=2),
             nn.ReLU(),
+            nn.BatchNorm2d(8),
             SpatialSoftmax(img_res, img_res, 8),
             nn.Linear(8*2, 256), # Spatial softmax will result in 2 values per channel 1 along height and 1 along widt.
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.Linear(256, 256),
             nn.ReLU(),
+            nn.BatchNorm1d(256),
             nn.Linear(256, self.z_dim),
             )
         
@@ -38,6 +40,7 @@ class AutoEncoder_Dynamics(nn.Module):
             nn.Dropout(p=0.5),
             nn.Linear(128, 128),
             nn.ReLU(),
+            nn.BatchNorm1d(128),
             nn.Dropout(p=0.5),
             nn.Linear(128, 128),
             nn.ReLU(),
@@ -50,32 +53,23 @@ class AutoEncoder_Dynamics(nn.Module):
             nn.Dropout(p=0.5),
             nn.Linear(512, 512),
             nn.ReLU(),
+            nn.BatchNorm1d(512),
             nn.Dropout(p=0.5),
             nn.Linear(512, 512),
             nn.ReLU(),
             nn.Dropout(p=0.5),
-            nn.Linear(512, 512),
+            nn.Linear(512, self.x_dim),
             nn.ReLU(),
         )
 #         self.decoder = self.decoder.float()
-        self.environment = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=4, kernel_size=5, padding=2), # kernel_size different than original
+        self.environment = nn.Sequential( 
+            nn.Conv2d(in_channels=2, out_channels=4, kernel_size=3, padding=1), # kernel_size different than original
             nn.ReLU(),
-            nn.Flatten(),
-            nn.Linear(4 * self.x_dim, 512),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(512, 512),
-            nn.ReLU(),
+            nn.BatchNorm2d(4),
+            nn.Conv2d(in_channels=4, out_channels=1, kernel_size=3, padding=1)
         )
 #         self.environment = self.environment.float()
-        self.last_layer = nn.Linear(512 + 512, self.x_dim)
+        # self.last_layer = nn.Linear(512 + 512, self.x_dim)
 #         self.last_layer = self.last_layer.float()
 
         self.dummy_param = nn.Parameter(torch.tensor(1.))
@@ -85,6 +79,17 @@ class AutoEncoder_Dynamics(nn.Module):
         input_enc = torch.reshape(x_full, [-1, 1, self.img_res, self.img_res])
         z_full = self.encoder(input_enc)
         return x_full, z_full
+
+    def decode(self, z_t, x_empty):
+        output_dec = self.decoder(z_t)
+        output_dec = torch.reshape(output_dec, [-1, 1, self.img_res, self.img_res])
+
+        input_env = torch.reshape(x_empty, [-1, 1, self.img_res, self.img_res]) #TODO: identity?
+        
+        input_last = torch.cat((output_dec, input_env), dim=1)
+        x_hat = self.environment(input_last)
+        
+        return x_hat
 
     def predict_dynamics(self, z_t, u_t):
         input_dyn = torch.cat((z_t, u_t), dim=1) #TODO: Do I have to use torch.identity after concatenation? why/not?
@@ -141,17 +146,14 @@ class AutoEncoder_Dynamics(nn.Module):
         
         input_dec = torch.cat((z_t, z_hat_tplus), dim=0) #TODO: Again, should I use torch.identity here?
         output_dec = self.decoder(input_dec)
+        output_dec = torch.reshape(output_dec, [-1, 1, self.img_res, self.img_res])
         
         x_empty_full = torch.cat((x_empty, x_empty), dim=0)
         input_env = torch.reshape(x_empty_full, [-1, 1, self.img_res, self.img_res]) #TODO: identity?
-        output_env = self.environment(input_env)
-        
-        input_last = torch.cat((output_dec, output_env), dim=1)
-        x_hat_full = self.last_layer(input_last)
+        input_last = torch.cat((output_dec, input_env), dim=1)
+        x_hat_full = self.environment(input_last)
         
         x_hat_full = torch.reshape(x_hat_full, [-1, self.img_res, self.img_res])
-        
-        
         
         return x_full, z_t, z_tplus, x_hat_full, z_hat_tplus
         
@@ -160,12 +162,14 @@ class AutoEncoder_Dynamics(nn.Module):
         From a typical pytorch code principles, perhaps this should be a different class
         than the net class itself but that's ok for now.
         '''
-        G_inv, _, _ = self.compute_grammian(z_t, u_t, z_hat_tplus)
-
-        z_diff = self.__expand_dims(z_hat_tplus) - self.__expand_dims(z_tplus) # N x D_z x 1
-        z_diff_T = torch.transpose(z_diff, 1, 2) # N x 1 x D_z
+        # G_inv, _, _ = self.compute_grammian(z_t, u_t, z_hat_tplus)
+        #
+        # z_diff = self.__expand_dims(z_hat_tplus) - self.__expand_dims(z_tplus) # N x D_z x 1
+        # z_diff_T = torch.transpose(z_diff, 1, 2) # N x 1 x D_z
         
-        predict_loss_G = torch.sum(torch.abs(torch.bmm(z_diff_T, torch.bmm(G_inv, z_diff)))) # N x 1 before sum, scalar after sum
+        # predict_loss_G = torch.sum(torch.abs(torch.bmm(z_diff_T, torch.bmm(G_inv, z_diff)))) # N x 1 before sum, scalar after sum
+        mask = x_full < 0.5
+        predict_loss_G = F.mse_loss(x_hat_full * mask, x_full * mask, reduction='sum') / mask.sum()
         predict_loss_L2 = F.mse_loss(z_hat_tplus, z_tplus,  reduction='mean')
         predict_loss = predict_loss_G * (1 - L2_weight) + predict_loss_L2 * L2_weight
         

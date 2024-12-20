@@ -52,7 +52,7 @@ for i in tqdm(range(args.num_envs)):
     states1 = torch.tensor(np.stack(states1), dtype=torch.float32).to(device)
     states2 = torch.tensor(np.stack(states2), dtype=torch.float32).to(device)
     with torch.no_grad():
-        z_full = enc_dyn_net.encode(states1, states2)[1].cpu().numpy()
+        z_full = enc_dyn_net.encode(states1, states2)[1].cpu().numpy().astype(np.float64)
     z1, z2 = z_full[:states1.shape[0]], z_full[states1.shape[0]:]
     latents1.append(z1)
     latents2.append(z2)
@@ -60,7 +60,8 @@ for i in tqdm(range(args.num_envs)):
     with open(os.path.join(args.dirname, f"empty_{i}.bin"), 'wb') as fp:
         pickle.dump(resize(env._env, args.scale), fp)
 
-mean, std = np.stack(latents1 + latents2).mean(), np.stack(latents1 + latents2).std()
+all_latents = np.concatenate(latents1 + latents2, axis=0)
+mean, std = all_latents.mean(axis=0), all_latents.std(axis=0)
 latents1 = (np.concatenate(latents1, axis=0) - mean) / std
 latents2 = (np.concatenate(latents2, axis=0) - mean) / std
 print(f"latent mean: {mean}, std: {std}")
@@ -68,7 +69,7 @@ print(f"latent mean: {mean}, std: {std}")
 with open(os.path.join(args.dirname, "latents1.bin"), 'wb') as fp:
     pickle.dump(latents1, fp)
 with open(os.path.join(args.dirname, "latents2.bin"), 'wb') as fp:
-    pickle.dump(latents1, fp)
+    pickle.dump(latents2, fp)
 with open(os.path.join(args.dirname, "labels.bin"), 'wb') as fp:
     pickle.dump(labels, fp)
 with open(os.path.join(args.dirname, "stats.bin"), 'wb') as fp:

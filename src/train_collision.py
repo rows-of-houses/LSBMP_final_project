@@ -10,6 +10,7 @@ from tqdm import tqdm
 from utils import set_random_seed
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 
 set_random_seed(42)
 
@@ -35,7 +36,7 @@ test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-expt_prefix = 'AutoEncoderCollision-Training-'
+expt_prefix = 'Collision-Training-'
 expt_name = expt_prefix + time.strftime('%m-%d-%H-%M-%S')
 writer = SummaryWriter('runs/' + expt_name)
 
@@ -52,12 +53,14 @@ def train_one_epoch(model, epoch):
         img_dense_out = model.image_representation(x_empty)
         logits = model(z1, z2, img_dense_out)
         total_loss = model.compute_loss(labels, logits)
+        print(total_loss)
+        print(logits, labels)
         
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
         
-        running_loss += total_loss.item() * logits.shape[0]
+        running_loss += total_loss.item() * labels.shape[0]
         accuracy += ((logits > 0) == labels).sum()
 
     avg_loss = running_loss / len(trainset)
