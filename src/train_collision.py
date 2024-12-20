@@ -10,7 +10,6 @@ from tqdm import tqdm
 from utils import set_random_seed
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = "cpu"
 
 set_random_seed(42)
 
@@ -53,8 +52,8 @@ def train_one_epoch(model, epoch):
         img_dense_out = model.image_representation(x_empty)
         logits = model(z1, z2, img_dense_out)
         total_loss = model.compute_loss(labels, logits)
-        print(total_loss)
-        print(logits, labels)
+        # print(total_loss)
+        # print(logits, labels)
         
         optimizer.zero_grad()
         total_loss.backward()

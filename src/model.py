@@ -197,41 +197,41 @@ class CollisionChecker(nn.Module):
         self.z_dim = z_dim
         self.u_dim = u_dim
         conv_filters = 10
-        padding=3
-        kernel_size=7
+        padding=1
+        kernel_size=3
         fc_dim = 128
         self.imageConvLayer = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=conv_filters, kernel_size=kernel_size, padding=padding), # kernel_size different than original
+            nn.Conv2d(in_channels=1, out_channels=4, kernel_size=kernel_size, padding=padding), # kernel_size different than original
             nn.ReLU(),
-            nn.Conv2d(conv_filters, conv_filters, kernel_size, padding=padding),
+            nn.Conv2d(4, 8, kernel_size, padding=padding, stride=2),
             nn.ReLU(),
-            nn.Conv2d(conv_filters, conv_filters, kernel_size, padding=padding),
+            nn.BatchNorm2d(8),
+            nn.Conv2d(8, 16, kernel_size, padding=padding, stride=2),
             nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size, padding=padding, stride=2),
+            nn.ReLU(),
+            nn.BatchNorm2d(32),
             nn.Flatten(),
-            nn.Linear(conv_filters*self.x_dim, 4*fc_dim),
+            nn.Linear(512, fc_dim),
             nn.ReLU()
         )
         
         self.latentDenseLayer = nn.Sequential(
-            nn.Linear(2*self.z_dim, 4*fc_dim),
+            nn.Linear(2*self.z_dim, fc_dim),
             nn.ReLU(),
         )
         
         self.finalDenseLayer = nn.Sequential(
-            nn.Linear(8*fc_dim, fc_dim),
+            nn.Linear(2*fc_dim, fc_dim),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            # nn.Dropout(p=0.5),
             nn.Linear(fc_dim, fc_dim),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            nn.BatchNorm1d(fc_dim),
+            # nn.Dropout(p=0.5),
             nn.Linear(fc_dim, fc_dim),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(fc_dim, fc_dim),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(fc_dim, fc_dim),
-            nn.ReLU(),
+            # nn.Dropout(p=0.5),
             nn.Linear(fc_dim, 1)
         )
     
