@@ -16,20 +16,24 @@ class AutoEncoder_Dynamics(nn.Module):
         self.u_dim = u_dim
         
         self.encoder = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=5, padding=2), # kernel_size different than original
+            nn.Conv2d(in_channels=1, out_channels=4, kernel_size=3, padding=1), # kernel_size different than original
             nn.ReLU(),
-            nn.Conv2d(8, 8, 5, padding=2),
-            nn.ReLU(),
-            nn.Conv2d(8, 8, 5, padding=2),
+            nn.Conv2d(4, 8, 3, padding=1, stride=2),
             nn.ReLU(),
             nn.BatchNorm2d(8),
-            SpatialSoftmax(img_res, img_res, 8),
-            nn.Linear(8*2, 256), # Spatial softmax will result in 2 values per channel 1 along height and 1 along widt.
+            nn.Conv2d(8, 16, 3, padding=1, stride=2),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(256, 256),
+            nn.Conv2d(16, 32, 3, padding=1, stride=2),
             nn.ReLU(),
-            nn.BatchNorm1d(256),
+            nn.BatchNorm2d(32),
+            # SpatialSoftmax(img_res, img_res, 8),
+            nn.Flatten(),
+            nn.Linear(512, 256), # Spatial softmax will result in 2 values per channel 1 along height and 1 along widt.
+            nn.ReLU(),
+            # nn.Dropout(p=0.5),
+            # nn.Linear(256, 256),
+            # nn.ReLU(),
+            # nn.BatchNorm1d(256),
             nn.Linear(256, self.z_dim),
             )
         
@@ -37,11 +41,11 @@ class AutoEncoder_Dynamics(nn.Module):
         self.dynamics = nn.Sequential(
             nn.Linear(self.z_dim + self.u_dim, 128),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            # nn.Dropout(p=0.5),
             nn.Linear(128, 128),
             nn.ReLU(),
             nn.BatchNorm1d(128),
-            nn.Dropout(p=0.5),
+            # nn.Dropout(p=0.5),
             nn.Linear(128, 128),
             nn.ReLU(),
             nn.Linear(128, self.z_dim),
@@ -50,14 +54,14 @@ class AutoEncoder_Dynamics(nn.Module):
         self.decoder = nn.Sequential(
             nn.Linear(self.z_dim, 512),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            # nn.Dropout(p=0.5),
             nn.Linear(512, 512),
             nn.ReLU(),
             nn.BatchNorm1d(512),
-            nn.Dropout(p=0.5),
+            # nn.Dropout(p=0.5),
             nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            # nn.Dropout(p=0.5),
             nn.Linear(512, self.x_dim),
             nn.ReLU(),
         )
@@ -157,7 +161,7 @@ class AutoEncoder_Dynamics(nn.Module):
         
         return x_full, z_t, z_tplus, x_hat_full, z_hat_tplus
         
-    def compute_loss(self, u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, L2_weight):
+    def compute_loss(self, u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, mse_weight):
         '''
         From a typical pytorch code principles, perhaps this should be a different class
         than the net class itself but that's ok for now.
@@ -168,13 +172,13 @@ class AutoEncoder_Dynamics(nn.Module):
         # z_diff_T = torch.transpose(z_diff, 1, 2) # N x 1 x D_z
         
         # predict_loss_G = torch.sum(torch.abs(torch.bmm(z_diff_T, torch.bmm(G_inv, z_diff)))) # N x 1 before sum, scalar after sum
-        mask = x_full < 0.5
+        mask = (x_full < 0.5)
         predict_loss_G = F.mse_loss(x_hat_full * mask, x_full * mask, reduction='sum') / mask.sum()
         predict_loss_L2 = F.mse_loss(z_hat_tplus, z_tplus,  reduction='mean')
-        predict_loss = predict_loss_G * (1 - L2_weight) + predict_loss_L2 * L2_weight
+        predict_loss = predict_loss_L2 * 0.01
         
         recon_loss = F.mse_loss(x_hat_full, x_full, reduction='mean')
-        total_loss = predict_loss + recon_loss
+        total_loss = predict_loss + (1 - mse_weight) * predict_loss_G + mse_weight * recon_loss
         
         return total_loss, predict_loss_G, predict_loss_L2, recon_loss
     
