@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-n', "--num_envs", type=int, default=25000)
 parser.add_argument('-l', "--num_pairs", type=int, default=10)
-parser.add_argument('-s', "--step", type=int, default=8)
+parser.add_argument('-s', "--step", type=int, default=4)
 parser.add_argument("--scale", type=int, default=4)
 parser.add_argument("--random_seed", type=int, default=42)
 parser.add_argument("model_path")
@@ -65,6 +65,7 @@ mean, std = all_latents.mean(axis=0), all_latents.std(axis=0)
 latents1 = (np.concatenate(latents1, axis=0) - mean) / std
 latents2 = (np.concatenate(latents2, axis=0) - mean) / std
 print(f"latent mean: {mean}, std: {std}")
+print("class balance:", np.mean(labels))
 
 with open(os.path.join(args.dirname, "latents1.bin"), 'wb') as fp:
     pickle.dump(latents1, fp)

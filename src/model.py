@@ -170,19 +170,21 @@ class AutoEncoder_Dynamics(nn.Module):
         #
         # z_diff = self.__expand_dims(z_hat_tplus) - self.__expand_dims(z_tplus) # N x D_z x 1
         # z_diff_T = torch.transpose(z_diff, 1, 2) # N x 1 x D_z
-        
+        #
         # predict_loss_G = torch.sum(torch.abs(torch.bmm(z_diff_T, torch.bmm(G_inv, z_diff)))) # N x 1 before sum, scalar after sum
+        predict_loss_G = torch.tensor(0)
+        
+        predict_loss_L2 = F.mse_loss(z_hat_tplus, z_tplus,  reduction='mean')
+        predict_loss = predict_loss_L2 * l2_weight
+        # predict_loss = (1 - l2_weight) * predict_loss_G + predict_loss_L2 * l2_weight
+
         mask = (x_full < 0.5)
         weights = torch.zeros_like(x_hat_full)
         msum =  mask.sum()
         weights[mask] = 1 / msum
         weights[~mask] = 1 / (mask.numel() - msum)
-        predict_loss_G = (weights * (x_hat_full - x_full) ** 2).sum()
-        predict_loss_L2 = F.mse_loss(z_hat_tplus, z_tplus,  reduction='mean')
-        predict_loss = predict_loss_L2 * l2_weight        
-
-        recon_loss = F.mse_loss(x_hat_full, x_full, reduction='mean')
-        total_loss = predict_loss + (1 - mse_weight) * predict_loss_G + mse_weight * recon_loss
+        recon_loss = (weights * (x_hat_full - x_full) ** 2).sum()
+        total_loss = predict_loss + mse_weight * recon_loss
         
         return total_loss, predict_loss_G, predict_loss_L2, recon_loss
     
