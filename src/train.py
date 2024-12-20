@@ -26,7 +26,8 @@ epochs = 100
 data_train_path = '../data/train'
 data_test_path = '../data/test'
 save_every = 5
-mse_weight = 0.1
+mse_weight = 0
+l2_weight = 0.1
 
 dynamics_train = LSBMPDataset(data_train_path)
 dynamics_test = LSBMPDataset(data_test_path)
@@ -52,7 +53,7 @@ def train_one_epoch(model, epoch):
             
         x_full, z_t, z_tplus, x_hat_full, z_hat_tplus = enc_dyn_net(x_t, x_tplus, x_empty, u_t)
         # l2_weight = 1.0 if epoch < 10 else 0.0 # Can use a more sophisticated L2_weight formulation
-        total_loss, predict_loss_G, predict_loss_L2, recon_loss = enc_dyn_net.compute_loss(u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, mse_weight)
+        total_loss, predict_loss_G, predict_loss_L2, recon_loss = enc_dyn_net.compute_loss(u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, l2_weight, mse_weight)
         
         optimizer.zero_grad()
         total_loss.backward()
@@ -81,7 +82,7 @@ def test_one_epoch(model, epoch):
                         
             x_full, z_t, z_tplus, x_hat_full, z_hat_tplus = enc_dyn_net(x_t, x_tplus, x_empty, u_t)
             # l2_weight = 1.0 if epoch < 10 else 0.0 # Can use a more sophisticated L2_weight formulation
-            total_loss, predict_loss_G, predict_loss_L2, recon_loss = enc_dyn_net.compute_loss(u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, mse_weight)
+            total_loss, predict_loss_G, predict_loss_L2, recon_loss = enc_dyn_net.compute_loss(u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, l2_weight, mse_weight)
                     
             running_loss += np.array([total_loss.item(), predict_loss_G.item(), predict_loss_L2.item(), recon_loss.item()])
 
@@ -92,8 +93,8 @@ def test_one_epoch(model, epoch):
     writer.add_scalar('test_loss_G', avg_loss[1], epoch)
     writer.add_scalar('test_loss_L2', avg_loss[2], epoch)
     writer.add_scalar('test_recon_loss', avg_loss[3], epoch)
-    writer.add_tensor('test_latent1', z_t[0], epoch)
-    writer.add_tensor('test_latent2', z_tplus[0], epoch)
+    writer.add_text('test_latent1', z_t[0].__repr__(), epoch)
+    writer.add_text('test_latent2', z_tplus[0].__repr__(), epoch)
     writer.add_image('test_x_t', x_t[:1], epoch)
     writer.add_image('test_x_tplus', x_tplus[:1], epoch)
     writer.add_image('test_x_hat', x_hat_full[:1], epoch)

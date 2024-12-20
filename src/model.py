@@ -161,7 +161,7 @@ class AutoEncoder_Dynamics(nn.Module):
         
         return x_full, z_t, z_tplus, x_hat_full, z_hat_tplus
         
-    def compute_loss(self, u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, mse_weight):
+    def compute_loss(self, u_t, x_full, z_t, z_tplus, x_hat_full, z_hat_tplus, l2_weight, mse_weight):
         '''
         From a typical pytorch code principles, perhaps this should be a different class
         than the net class itself but that's ok for now.
@@ -173,10 +173,14 @@ class AutoEncoder_Dynamics(nn.Module):
         
         # predict_loss_G = torch.sum(torch.abs(torch.bmm(z_diff_T, torch.bmm(G_inv, z_diff)))) # N x 1 before sum, scalar after sum
         mask = (x_full < 0.5)
-        predict_loss_G = F.mse_loss(x_hat_full * mask, x_full * mask, reduction='sum') / mask.sum()
+        weights = torch.zeros_like(x_hat_full)
+        msum =  mask.sum()
+        weights[mask] = 1 / msum
+        weights[~mask] = 1 / (mask.numel() - msum)
+        predict_loss_G = (weights * (x_hat_full - x_full) ** 2).sum()
         predict_loss_L2 = F.mse_loss(z_hat_tplus, z_tplus,  reduction='mean')
-        predict_loss = predict_loss_L2 * 0.01
-        
+        predict_loss = predict_loss_L2 * l2_weight        
+
         recon_loss = F.mse_loss(x_hat_full, x_full, reduction='mean')
         total_loss = predict_loss + (1 - mse_weight) * predict_loss_G + mse_weight * recon_loss
         
