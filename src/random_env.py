@@ -10,7 +10,7 @@ def get_random_env(scale: int, robot_size: int = 3, env_size: int = 32,
     max_box_size *= scale
     n_circles = np.random.randint(max_n_circles + 1)
     n_boxes = np.random.randint((n_circles == 0), max_n_boxes + 1)
-    env = np.zeros((env_size, env_size))
+    env = np.full((env_size, env_size), 0.5)
     yy, xx = np.mgrid[:env_size, :env_size]
     circles = []
     for _ in range(n_circles):

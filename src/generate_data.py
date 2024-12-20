@@ -6,6 +6,7 @@ import numpy as np
 
 from environment import Environment
 from random_env import get_random_env
+from utils import set_random_seed
 
 
 def resize(img, scale):
@@ -22,7 +23,7 @@ parser.add_argument("--random_seed", type=int, default=42)
 parser.add_argument('dirname')
 
 args = parser.parse_args()
-np.random.seed(args.random_seed)
+set_random_seed(args.random_seed)
 
 for i in range(args.num_envs):
     while True:  # Guarantee that we have the correct length

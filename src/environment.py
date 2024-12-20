@@ -40,7 +40,7 @@ class Environment:
         s is the state 
         """
         dims = self._env.shape
-        current_env = np.copy(self._env) / 2 + 0.5
+        current_env = np.copy(self._env)
         # plot agent
         current_env[s[0] + self._robot_start:s[0] + self._robot_end,
                     s[1] + self._robot_start:s[1] + self._robot_end] = 0 #purple

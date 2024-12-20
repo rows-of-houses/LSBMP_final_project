@@ -42,7 +42,8 @@ writer = SummaryWriter('runs/' + expt_name)
 def train_one_epoch(model, epoch):
     model.train()
     running_loss = 0
-    for i, (z1, z2, x_empty, labels) in enumerate(train_loader, 0):
+    accuracy = 0
+    for z1, z2, x_empty, labels in train_loader:
         z1 = z1.to(device)
         z2 = z2.to(device)
         x_empty = x_empty.to(device)
@@ -56,13 +57,14 @@ def train_one_epoch(model, epoch):
         total_loss.backward()
         optimizer.step()
         
-        running_loss += total_loss.item()
-        if i % 100 == 0:
-            avg_loss = running_loss / 100
-            # print ('[%d, %5d] loss: %.3f' % (epoch+1, i+1, avg_loss))
-            index = epoch * len(train_loader) + i
-            writer.add_scalar('train_loss', avg_loss, index)
-            running_loss = 0.0
+        running_loss += total_loss.item() * logits.shape[0]
+        accuracy += ((logits > 0) == labels).sum()
+
+    avg_loss = running_loss / len(trainset)
+    avg_accuracy = accuracy / len(testset)
+    # print ('[%d, %5d] loss: %.3f' % (epoch+1, i+1, avg_loss))
+    writer.add_scalar('train_loss', avg_loss, epoch)
+    writer.add_scalar('train_accuracy', avg_accuracy, epoch)
             
             
 def test_one_epoch(model, epoch):
@@ -70,7 +72,7 @@ def test_one_epoch(model, epoch):
     running_loss = 0
     accuracy = 0
     with torch.no_grad():
-        for i, (z1, z2, x_empty, labels) in enumerate(test_loader, 0):
+        for z1, z2, x_empty, labels in test_loader:
             z1 = z1.to(device)
             z2 = z2.to(device)
             x_empty = x_empty.to(device)
@@ -79,15 +81,14 @@ def test_one_epoch(model, epoch):
             img_dense_out = model.image_representation(x_empty)
             logits = model(z1, z2, img_dense_out)
             total_loss = model.compute_loss(labels, logits)
-            running_loss += total_loss.item()
+            running_loss += total_loss.item() * logits.shape[0]
 
             accuracy += ((logits > 0) == labels).sum()
-    avg_loss = running_loss * batch_size / len(testset)
+    avg_loss = running_loss / len(testset)
     avg_accuracy = accuracy / len(testset)
     # print ('[%d, %5d] loss: %.3f accuracy: %.3f' % (epoch+1, i+1, avg_loss, avg_accuracy))
-    index = epoch * len(train_loader)
-    writer.add_scalar('test_loss', avg_loss, index)
-    writer.add_scalar('test_accuracy', avg_accuracy, index)
+    writer.add_scalar('test_loss', avg_loss, epoch)
+    writer.add_scalar('test_accuracy', avg_accuracy, epoch)
             
 
 for epoch in tqdm(range(epochs)):

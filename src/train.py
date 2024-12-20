@@ -20,9 +20,9 @@ x_dim = 32*32
 u_dim = 2
 img_res = 32
 
-batch_size = 2048
+batch_size = 256
 lr = 1e-4
-epochs = 100
+epochs = 24
 data_train_path = '../data/train'
 data_test_path = '../data/test'
 save_every = 5
@@ -35,7 +35,9 @@ dyn_test_loader = DataLoader(dynamics_test, batch_size=batch_size, shuffle=False
 
 optimizer = torch.optim.Adam(enc_dyn_net.parameters(), lr=lr)
 
-writer = SummaryWriter()
+expt_prefix = 'AutoEncoder-Training-'
+expt_name = expt_prefix + time.strftime('%m-%d-%H-%M-%S')
+writer = SummaryWriter('runs/' + expt_name)
 
 def train_one_epoch(model, epoch):
     model.train()

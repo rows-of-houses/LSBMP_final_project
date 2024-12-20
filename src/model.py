@@ -42,7 +42,6 @@ class AutoEncoder_Dynamics(nn.Module):
             nn.Linear(128, 128),
             nn.ReLU(),
             nn.Linear(128, self.z_dim),
-            nn.ReLU(),
         )
 #         self.dynamics = self.dynamics.float()
         self.decoder = nn.Sequential(

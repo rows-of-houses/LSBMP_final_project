@@ -9,6 +9,7 @@ from tqdm import tqdm
 from environment import Environment
 from random_env import get_random_env
 from model import AutoEncoder_Dynamics
+from utils import set_random_seed
 
 
 def resize(img, scale):
@@ -26,7 +27,7 @@ parser.add_argument("model_path")
 parser.add_argument('dirname')
 
 args = parser.parse_args()
-np.random.seed(args.random_seed)
+set_random_seed(args.random_seed)
 os.makedirs(args.dirname)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -58,10 +59,18 @@ for i in tqdm(range(args.num_envs)):
     labels.append(labels_inner)
     with open(os.path.join(args.dirname, f"empty_{i}.bin"), 'wb') as fp:
         pickle.dump(resize(env._env, args.scale), fp)
-    
+
+mean, std = np.stack(latents1 + latents2).mean(), np.stack(latents1 + latents2).std()
+latents1 = (np.concatenate(latents1, axis=0) - mean) / std
+latents2 = (np.concatenate(latents2, axis=0) - mean) / std
+print(f"latent mean: {mean}, std: {std}")
+
 with open(os.path.join(args.dirname, "latents1.bin"), 'wb') as fp:
     pickle.dump(latents1, fp)
 with open(os.path.join(args.dirname, "latents2.bin"), 'wb') as fp:
     pickle.dump(latents1, fp)
 with open(os.path.join(args.dirname, "labels.bin"), 'wb') as fp:
     pickle.dump(labels, fp)
+with open(os.path.join(args.dirname, "stats.bin"), 'wb') as fp:
+    pickle.dump({"mean": mean, "std": std}, fp)
+
